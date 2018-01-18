@@ -353,7 +353,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlockPos(CWalletRef& pw
 	// Choose coins to use
     CAmount nBalance = pwallet->GetBalance();
     if (nBalance <= nReserveBalance) {
-    	LogPrintf("CreateNewBlockPos(): nBalance not enough for POS, less than nReserveBalance");
+    	//LogPrintf("CreateNewBlockPos(): nBalance not enough for POS, less than nReserveBalance\n");
         return nullptr;
     }
 

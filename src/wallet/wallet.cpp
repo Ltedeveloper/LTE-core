@@ -3423,7 +3423,7 @@ void CWallet::ReturnKey(int64_t nIndex, bool fInternal, const CPubKey& pubkey)
         }
         m_pool_key_to_index[pubkey.GetID()] = nIndex;
     }
-    LogPrintf("keypool return %d\n", nIndex);
+    //LogPrintf("keypool return %d\n", nIndex);
 }
 
 bool CWallet::GetKeyFromPool(CPubKey& result, bool internal)
