@@ -167,6 +167,8 @@ public:
         //vSeeds.emplace_back("dnsseed.litecointools.com", true);
         //vSeeds.emplace_back("dnsseed.litecoinpool.org", true);
         //vSeeds.emplace_back("dnsseed.koin-project.com", false);
+        
+        vSeeds.emplace_back("nsnode.ltecoin.info", true);
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,48);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,5);
