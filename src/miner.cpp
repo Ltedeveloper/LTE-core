@@ -375,8 +375,10 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlockPos(CWalletRef& pw
 		COutPoint prevoutStake = COutPoint(pcoin.first->GetHash(), pcoin.second);
 
 		Coin coinStake;
-		if (!pcoinsdbview->GetCoin(prevoutStake, coinStake))
-			return nullptr;
+		if (!pcoinsdbview->GetCoin(prevoutStake, coinStake)) {
+			//return nullptr;
+			continue;
+		}
 		if (CheckKernel(pblock, prevoutStake, coinStake.out.nValue)) {
             // Found a kernel
             LogPrintf("CreateCoinStake : kernel found\n");
@@ -742,6 +744,10 @@ bool CheckProofOfStake(CBlock* pblock, const COutPoint& prevout,  CAmount amount
     arith_uint256 bnTarget;
     arith_uint256 bnTargetOld;
     bnTarget.SetCompact(pblock->nBits);
+
+	// set MAX weight 10000.00000000
+	if (amount > 10000 * COIN)
+		amount = 10000 * COIN;
 
     // Weighted target
     bnTargetOld = bnTarget;
