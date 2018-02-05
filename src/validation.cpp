@@ -2882,7 +2882,12 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
 
 	if (block.IsProofOfStake() && !block.vtx[1]->IsCoinStake()) 
 		return state.DoS(100, false, REJECT_INVALID, "bad-cb-missing", false, "ProofOfStake: second tx is not coinstake");
-	
+
+	// when at POS state, should check whether the pubscript of coinbase is same to the pubscript of coinstake
+	if (block.IsProofOfStake())
+		if (block.vtx[0]->vout[0].scriptPubKey != block.vtx[1]->vout[1].scriptPubKey)
+			return state.DoS(100, false, REJECT_INVALID, "bad-cb-missing", false, "scriptPubKey of coinbase and scriptPubKey of coinstake is not same");
+			
     for (unsigned int i = 1; i < block.vtx.size(); i++)
         if (block.vtx[i]->IsCoinBase())
             return state.DoS(100, false, REJECT_INVALID, "bad-cb-multiple", false, "more than one coinbase");

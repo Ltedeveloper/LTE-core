@@ -236,7 +236,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
 std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlockPos(CWalletRef& pwallet, bool fMineWitnessTx)
 {
-    int64_t nTimeStart = GetTimeMicros();
+    //int64_t nTimeStart = GetTimeMicros();
 
     resetBlock();
 
@@ -257,12 +257,12 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlockPos(CWalletRef& pw
     if(chainActive.Height()+1 <(Params().GetConsensus().LTEHeight+Params().GetConsensus().LTEPremineWindow+Params().GetConsensus().nPowAveragingWindow))
     	return nullptr;
 
-    std::shared_ptr<CReserveScript> coinbase_script;
-    pwallet->GetScriptForMining(coinbase_script);
+    //std::shared_ptr<CReserveScript> coinbase_script;
+    //pwallet->GetScriptForMining(coinbase_script);
 
     // If the keypool is exhausted, no script is returned at all.  Catch this.
-    if (!coinbase_script)
-        return nullptr;	
+    //if (!coinbase_script)
+    //    return nullptr;	
 
     LOCK2(cs_main, mempool.cs);
     CBlockIndex* pindexPrev = chainActive.Tip();
@@ -293,12 +293,13 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlockPos(CWalletRef& pw
     int nDescendantsUpdated = 0;
     addPackageTxs(nPackagesSelected, nDescendantsUpdated);
 
-    int64_t nTime1 = GetTimeMicros();
+    //int64_t nTime1 = GetTimeMicros();
 
     nLastBlockTx = nBlockTx;
     nLastBlockSize = nBlockSize;
     nLastBlockWeight = nBlockWeight;
 
+	/*
     // Create coinbase transaction.
     CMutableTransaction coinbaseTx;
     coinbaseTx.vin.resize(1);
@@ -311,11 +312,12 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlockPos(CWalletRef& pw
 	coinbaseTx.vout[0].scriptPubKey =  coinbase_script->reserveScript;
 	
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
+    */
     
     pblocktemplate->vTxFees[0] = -nFees;
 
-    int ser_flags = (nHeight >= Params().GetConsensus().LTEHeight) ? SERIALIZE_BLOCK_LEGACY : 0;
-    uint64_t nSerializeSize = GetSerializeSize(*pblock, SER_NETWORK, PROTOCOL_VERSION|ser_flags);
+    //int ser_flags = (nHeight >= Params().GetConsensus().LTEHeight) ? SERIALIZE_BLOCK_LEGACY : 0;
+    //uint64_t nSerializeSize = GetSerializeSize(*pblock, SER_NETWORK, PROTOCOL_VERSION|ser_flags);
     //LogPrintf("CreateNewBlockPos(): total size: %u block weight: %u txs: %u fees: %ld sigops %d\n", nSerializeSize, GetBlockWeight(*pblock), nBlockTx, nFees, nBlockSigOpsCost);
 
     // Fill in header
@@ -329,17 +331,19 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlockPos(CWalletRef& pw
     
 
     
-    int64_t nTime2 = GetTimeMicros();
+    //int64_t nTime2 = GetTimeMicros();
 
     //LogPrint(BCLog::BENCH, "CreateNewBlockPOS() packages: %.2fms (%d packages, %d updated descendants), validity: %.2fms (total %.2fms)\n", 0.001 * (nTime1 - nTimeStart), nPackagesSelected, nDescendantsUpdated, 0.001 * (nTime2 - nTime1), 0.001 * (nTime2 - nTimeStart));
 
 	// ExtraNonce
+	/*
     int nExtraNonce = 1;
     CMutableTransaction txCoinbase(*pblock->vtx[0]);
     txCoinbase.vin[0].scriptSig = (CScript() << pblock->nHeight  << CScriptNum(nExtraNonce)) + COINBASE_FLAGS;
     assert(txCoinbase.vin[0].scriptSig.size() <= 100);
 
     pblock->vtx[0] = MakeTransactionRef(std::move(txCoinbase));
+    */
 
 	// Create coin stake
 	CTransaction txCoinStake;
@@ -421,6 +425,27 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlockPos(CWalletRef& pw
     if (nCredit == 0 || nCredit > nBalance - nReserveBalance)
         return nullptr;
 	txCoinStake.hash = txCoinStake.ComputeHash();
+
+    // Create coinbase transaction.
+    CMutableTransaction coinbaseTx;
+    coinbaseTx.vin.resize(1);
+    coinbaseTx.vin[0].prevout.SetNull();
+    coinbaseTx.vout.resize(1);
+	// reward to pos miner 1 coin 
+    coinbaseTx.vout[0].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+    coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
+	// specify vout scriptpubkey of coinbase transaction (the first transaction)
+	coinbaseTx.vout[0].scriptPubKey =  scriptPubKeyKernel;
+    pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
+
+	// nExtraNonce
+    int nExtraNonce = 1;
+    CMutableTransaction txCoinbase(*pblock->vtx[0]);
+    txCoinbase.vin[0].scriptSig = (CScript() << pblock->nHeight  << CScriptNum(nExtraNonce)) + COINBASE_FLAGS;
+    assert(txCoinbase.vin[0].scriptSig.size() <= 100);
+    pblock->vtx[0] = MakeTransactionRef(std::move(txCoinbase));
+
+	// insert CoinStake
 	pblock->vtx.insert(pblock->vtx.begin() + 1, MakeTransactionRef(std::move(txCoinStake)));
     
 	pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);
@@ -737,7 +762,7 @@ bool CheckKernel(CBlock* pblock, const COutPoint& prevout, CAmount amount)
     return CheckProofOfStake(pblock, prevout, amount);
 }
 
-
+/*
 bool CheckProofOfStake(CBlock* pblock, const COutPoint& prevout,  CAmount amount)
 {
     // Base target
@@ -756,12 +781,48 @@ bool CheckProofOfStake(CBlock* pblock, const COutPoint& prevout,  CAmount amount
         return true;
     uint256 targetProofOfStake = ArithToUint256(bnTarget);
 
+	uint256 targetOld = ArithToUint256(bnTargetOld);
+	LogPrintf("CheckProofOfStake amount: %lld\n", amount);
+	LogPrintf("CheckProofOfStake bnTargetOld: %s\n", targetOld.ToString().c_str());
+	LogPrintf("CheckProofOfStake bnTarget: %s\n", targetProofOfStake.ToString().c_str());
+
     // Calculate hash
     CDataStream ss(SER_GETHASH, 0);
 	ss << pblock->nHeight << prevout.hash << prevout.n;
 	uint256	hashProofOfStake = Hash(ss.begin(), ss.end());
 
+	LogPrintf("CheckProofOfStake hashProofOfStake: %s\n", hashProofOfStake.ToString().c_str());
+
     if (UintToArith256(hashProofOfStake) > bnTarget)
+        return false;
+
+	return true;
+}
+*/
+
+
+bool CheckProofOfStake(CBlock* pblock, const COutPoint& prevout,  CAmount amount)
+{
+    // Base target
+    arith_uint256 bnTarget;
+    bnTarget.SetCompact(pblock->nBits);
+    uint256 targetProofOfStake = ArithToUint256(bnTarget);
+
+    // Calculate hash
+    CDataStream ss(SER_GETHASH, 0);
+	ss << pblock->nHeight << prevout.hash << prevout.n;
+	uint256	hashProofOfStake = Hash(ss.begin(), ss.end());
+
+	arith_uint256 bnHashPos = UintToArith256(hashProofOfStake);
+	bnHashPos /= amount;
+
+	uint256 hashProofOfStakeWeight = ArithToUint256(bnHashPos);
+	//LogPrintf("CheckProofOfStake amount: %lld\n", amount);
+	//LogPrintf("CheckProofOfStake bnTarget: %s\n", targetProofOfStake.ToString().c_str());
+	//LogPrintf("CheckProofOfStake hashProofOfStake: %s\n", hashProofOfStake.ToString().c_str());
+	//LogPrintf("CheckProofOfStake hashProofOfStakeWeight: %s\n", hashProofOfStakeWeight.ToString().c_str());
+
+    if (bnHashPos > bnTarget)
         return false;
 
 	return true;
