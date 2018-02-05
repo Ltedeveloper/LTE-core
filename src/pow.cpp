@@ -82,25 +82,25 @@ unsigned int PosGetNextTargetRequired(const CBlockIndex* pindexLast,  const CBlo
 {
 	bool fProofOfStake = pblock->IsProofOfStake();
 	assert(fProofOfStake == true);
-    unsigned int bnTargetLimit = UintToArith256(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")).GetCompact() ;
+    unsigned int bnTargetLimitnBits = UintToArith256(uint256S("000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffff")).GetCompact() ;
 	
 	
     if (pindexLast == NULL )
         //return bnTargetLimit.GetCompact(); // genesis block
-        return bnTargetLimit;
+        return bnTargetLimitnBits;
 
     const CBlockIndex* pindexPrev = GetLastBlockIndex(pindexLast, fProofOfStake,params);
 	if(pindexPrev == NULL)
-		return bnTargetLimit;
+		return bnTargetLimitnBits;
     if (pindexPrev->pprev == NULL)
         //return bnTargetLimit.GetCompact(); // first block
-        return bnTargetLimit;
+        return bnTargetLimitnBits;
     const CBlockIndex* pindexPrevPrev = GetLastBlockIndex(pindexPrev->pprev, fProofOfStake,params);
 	if(pindexPrevPrev == NULL)
-		return bnTargetLimit;
+		return bnTargetLimitnBits;
     if (pindexPrevPrev->pprev == NULL)
         //return bnTargetLimit.GetCompact(); // second block
-        return bnTargetLimit;
+        return bnTargetLimitnBits;
     
 
     int64_t nTargetSpacing = params.nPowTargetSpacing;
@@ -117,6 +117,9 @@ unsigned int PosGetNextTargetRequired(const CBlockIndex* pindexLast,  const CBlo
     int64_t nInterval = 20;
     bnNew *= ((nInterval - 1) * nTargetSpacing + nActualSpacing + nActualSpacing);
     bnNew /= ((nInterval + 1) * nTargetSpacing);
+
+	arith_uint256 bnTargetLimit;
+	bnTargetLimit.SetCompact(bnTargetLimitnBits);
 
     if (bnNew <= 0 || bnNew > bnTargetLimit)
         bnNew = bnTargetLimit;
