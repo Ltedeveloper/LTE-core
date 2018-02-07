@@ -53,7 +53,7 @@ extern CAmount nMinimumInputValue;
 extern CAmount nReserveBalance;
 extern int nStakeMinConfirmations;
 
-static bool CheckKernel(CBlock* pblock, const COutPoint& prevout, CAmount amount);
+static bool CheckKernel(CBlock* pblock, const COutPoint& prevout, CAmount amount, int32_t utxoDepth);
 
 int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev)
 {
@@ -378,18 +378,26 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlockPos(CWalletRef& pw
 	for (const auto& pcoin: setCoins) {
 		COutPoint prevoutStake = COutPoint(pcoin.first->GetHash(), pcoin.second);
 
+		/*
 		Coin coinStake;
 		if (!pcoinsdbview->GetCoin(prevoutStake, coinStake)) {
 			//return nullptr;
 			continue;
 		}
-		if (CheckKernel(pblock, prevoutStake, coinStake.out.nValue)) {
+		*/	
+
+		CTxOut vout = pcoin.first->tx->vout[pcoin.second];
+		int nDepth = pcoin.first->GetDepthInMainChain();
+	
+		//if (CheckKernel(pblock, prevoutStake, coinStake.out.nValue)) {
+		if (CheckKernel(pblock, prevoutStake, vout.nValue, nDepth)) {
             // Found a kernel
             LogPrintf("CreateCoinStake : kernel found\n");
             std::vector<std::vector<unsigned char> > vSolutions;
             txnouttype whichType;
             CScript scriptPubKeyOut;
-            scriptPubKeyKernel = coinStake.out.scriptPubKey;
+            //scriptPubKeyKernel = coinStake.out.scriptPubKey;
+			scriptPubKeyKernel = vout.scriptPubKey;
             if (!Solver(scriptPubKeyKernel, whichType, vSolutions))  {
                 LogPrintf("CreateNewBlockPos(): failed to parse kernel\n");
                 break;
@@ -406,7 +414,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlockPos(CWalletRef& pw
 
 			// push empty vin
             txCoinStake.vin.push_back(CTxIn(prevoutStake));
-            nCredit += coinStake.out.nValue;
+            //nCredit += coinStake.out.nValue;
+            nCredit += vout.nValue;
 			// push empty vout
 			CTxOut empty_txout = CTxOut();
 			empty_txout.SetEmpty();
@@ -749,14 +758,17 @@ void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned
 }
 
 
-bool CheckKernel(CBlock* pblock, const COutPoint& prevout, CAmount amount)
+bool CheckKernel(CBlock* pblock, const COutPoint& prevout, CAmount amount, int32_t utxoDepth)
 {
+	/*
 	Coin coinStake;
 	if (!pcoinsdbview->GetCoin(prevout, coinStake))
 		return false;	
 
 	int utxoHeight = coinStake.nHeight;
-	if (utxoHeight > pblock->nHeight - nStakeMinConfirmations)
+	*/
+	
+	if (utxoDepth < nStakeMinConfirmations)
 		return false;
 
     return CheckProofOfStake(pblock, prevout, amount);
