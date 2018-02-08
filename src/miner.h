@@ -211,7 +211,7 @@ private:
 void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned int& nExtraNonce);
 int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev);
 bool CheckStake(CBlock* pblock);
-bool CheckProofOfStake(CBlock* pblock, const COutPoint& prevout,  CAmount amount);
+bool CheckProofOfStake(CBlock* pblock, const COutPoint& prevout,  CAmount amount, int coinAge);
 
 
 

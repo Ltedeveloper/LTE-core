@@ -82,7 +82,7 @@ unsigned int PosGetNextTargetRequired(const CBlockIndex* pindexLast,  const CBlo
 {
 	bool fProofOfStake = pblock->IsProofOfStake();
 	assert(fProofOfStake == true);
-    unsigned int bnTargetLimitnBits = UintToArith256(uint256S("000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffff")).GetCompact() ;
+    unsigned int bnTargetLimitnBits = UintToArith256(uint256S("00000000000000ffffffffffffffffffffffffffffffffffffffffffffffffff")).GetCompact() ;
 	
 	
     if (pindexLast == NULL )

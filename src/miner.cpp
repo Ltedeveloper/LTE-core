@@ -767,7 +767,7 @@ bool CheckKernel(CBlock* pblock, const COutPoint& prevout, CAmount amount)
 	if (utxoHeight > pblock->nHeight - nStakeMinConfirmations)
 		return false;
 
-    return CheckProofOfStake(pblock, prevout, amount);
+    return CheckProofOfStake(pblock, prevout, amount, pblock->nHeight-utxoHeight);
 }
 
 
@@ -820,7 +820,7 @@ bool CheckProofOfStake(CBlock* pblock, const COutPoint& prevout,  CAmount amount
 */
 
 
-bool CheckProofOfStake(CBlock* pblock, const COutPoint& prevout,  CAmount amount)
+bool CheckProofOfStake(CBlock* pblock, const COutPoint& prevout,  CAmount amount, int coinAge)
 {
     // Base target
     arith_uint256 bnTarget;
@@ -834,9 +834,11 @@ bool CheckProofOfStake(CBlock* pblock, const COutPoint& prevout,  CAmount amount
 
 	arith_uint256 bnHashPos = UintToArith256(hashProofOfStake);
 	bnHashPos /= amount;
+	bnHashPos /= coinAge;
 
 	uint256 hashProofOfStakeWeight = ArithToUint256(bnHashPos);
 	//LogPrintf("CheckProofOfStake amount: %lld\n", amount);
+	//LogPrintf("CheckProofOfStake coinAge: %d\n", coinAge);
 	//LogPrintf("CheckProofOfStake bnTarget: %s\n", targetProofOfStake.ToString().c_str());
 	//LogPrintf("CheckProofOfStake hashProofOfStake: %s\n", hashProofOfStake.ToString().c_str());
 	//LogPrintf("CheckProofOfStake hashProofOfStakeWeight: %s\n", hashProofOfStakeWeight.ToString().c_str());
@@ -869,12 +871,12 @@ bool CheckStake(CBlock* pblock)
 	if (!pcoinsTip->GetCoin(pblock->vtx[1]->vin[0].prevout, coinStake))
 		return error("CheckStake() : can not get coinstake coin");
 
-	if (!CheckProofOfStake(pblock, pblock->vtx[1]->vin[0].prevout, coinStake.out.nValue))
-		return error("CheckStake() CheckProofOfStake");
-
 	// Check stake min confirmations
 	if (coinStake.nHeight > pblock->nHeight - nStakeMinConfirmations)
 		return error("CheckStake() : utxo can not reach stake min confirmations");
+
+	if (!CheckProofOfStake(pblock, pblock->vtx[1]->vin[0].prevout, coinStake.out.nValue, pblock->nHeight-coinStake.nHeight))
+		return error("CheckStake() CheckProofOfStake");
 
 	// Check pos authority
 	CScript coinStakeFrom = coinStake.out.scriptPubKey;
