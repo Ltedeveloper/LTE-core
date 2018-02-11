@@ -1760,7 +1760,8 @@ static void ThreadStakeMiner(CWallet *pwallet)
     		while (pwallet->IsLocked()) {
                 MilliSleep(1000);
             }
-    
+
+			/*
             while (g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0 || IsInitialBlockDownload()) {
                 fTryToSync = true;
                 MilliSleep(1000);
@@ -1773,6 +1774,16 @@ static void ThreadStakeMiner(CWallet *pwallet)
                     continue;
                 }
             }
+            */
+
+			while (g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0 || IsInitialBlockDownload()) {
+				MilliSleep(1000);
+			}
+
+			if((g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) < 3) || (chainActive.Tip()->GetBlockTime() < (GetTime() - 2 * 60))) {
+				MilliSleep(1000);
+            	continue;
+			}
     
             //
             // Create new block
