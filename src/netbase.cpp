@@ -414,6 +414,10 @@ bool static ConnectSocketDirectly(const CService &addrConnect, SOCKET& hSocketRe
     if (hSocket == INVALID_SOCKET)
         return false;
 
+	//BUG FIXED: glibc may cause process abort
+	if (hSocket >= FD_SETSIZE)
+		return false;
+
 #ifdef SO_NOSIGPIPE
     int set = 1;
     // Different way of disabling SIGPIPE on BSD
