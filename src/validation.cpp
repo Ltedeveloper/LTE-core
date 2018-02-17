@@ -2800,37 +2800,38 @@ static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state,
 {
 	if(fCheckPOW)
 	{
-		if (!block.IsProofOfStake()) {
-				// Check Equihash solution is valid
-				bool postfork = block.nHeight >= (uint32_t)consensusParams.LTEHeight + consensusParams.LTEPremineWindow;
-				if (postfork && !CheckEquihashSolution(&block, Params())) {
-					LogPrintf("CheckBlockHeader(): Equihash solution invalid at height %d\n", block.nHeight);
-					return state.DoS(100, error("CheckBlockHeader(): Equihash solution invalid"),
-									 REJECT_INVALID, "invalid-solution");
-				}
-		
-				// Check proof of work matches claimed amount
-				if (!postfork && !CheckProofOfWork(block.GetPoWHash(), block.nBits, postfork,consensusParams))
-					return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "proof of work failed");
-				else if (postfork && !CheckProofOfWork(block.GetHash(), block.nBits, postfork,consensusParams))
-					return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "proof of equip work failed");
-			} 
-			else {
-				uint256 pblockPrevHash = block.hashPrevBlock;
-				auto iter = mapBlockIndex.find(pblockPrevHash);
-				if (iter == mapBlockIndex.end()) 
-					return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "check prev header not exist failed");
-		
-				CBlockIndex* pblockPrev = mapBlockIndex[pblockPrevHash];
-				
-				uint32_t nbits = GetNextWorkRequired(pblockPrev, &block, consensusParams);
-				if (nbits != block.nBits)
-					return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "check block nbits failed");
-		
+		if (!block.IsProofOfStake()) 
+		{
+			// Check Equihash solution is valid
+			bool postfork = block.nHeight >= (uint32_t)consensusParams.LTEHeight + consensusParams.LTEPremineWindow;
+			if (postfork && !CheckEquihashSolution(&block, Params())) {
+				LogPrintf("CheckBlockHeader(): Equihash solution invalid at height %d\n", block.nHeight);
+				return state.DoS(100, error("CheckBlockHeader(): Equihash solution invalid"),
+								 REJECT_INVALID, "invalid-solution");
 			}
-
-}
 	
+			// Check proof of work matches claimed amount
+			if (!postfork && !CheckProofOfWork(block.GetPoWHash(), block.nBits, postfork,consensusParams))
+				return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "proof of work failed");
+			else if (postfork && !CheckProofOfWork(block.GetHash(), block.nBits, postfork,consensusParams))
+				return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "proof of equip work failed");
+		} 
+		else 
+		{
+			uint256 pblockPrevHash = block.hashPrevBlock;
+			auto iter = mapBlockIndex.find(pblockPrevHash);
+			if (iter == mapBlockIndex.end()) 
+				return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "check prev header not exist failed");
+	
+			CBlockIndex* pblockPrev = mapBlockIndex[pblockPrevHash];
+			
+			uint32_t nbits = GetNextWorkRequired(pblockPrev, &block, consensusParams);
+			if (nbits != block.nBits)
+				return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "check block nbits failed");
+	
+		}
+
+	}
 
     return true;
 }
@@ -2884,9 +2885,18 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
 		return state.DoS(100, false, REJECT_INVALID, "bad-cb-missing", false, "ProofOfStake: second tx is not coinstake");
 
 	// when at POS state, should check whether the pubscript of coinbase is same to the pubscript of coinstake
-	if (block.IsProofOfStake())
-		if (block.vtx[0]->vout[0].scriptPubKey != block.vtx[1]->vout[1].scriptPubKey)
-			return state.DoS(100, false, REJECT_INVALID, "bad-cb-missing", false, "scriptPubKey of coinbase and scriptPubKey of coinstake is not same");
+	if (block.IsProofOfStake()) 
+	{
+		// ignore mistake POS block's validation
+		// block height 1358191 (5ccd2a2789273b9334fffe6b8cadf5b858ce95fc598fcf31e7ee86e460b29e65)
+		// and block height 1358194 (25d25978d7f5a62441af14b76cf2a454c849f1d7f9c447f86cb29c40fe1f9ad9)
+		if (block.GetHash() != uint256S("5ccd2a2789273b9334fffe6b8cadf5b858ce95fc598fcf31e7ee86e460b29e65") &&
+			block.GetHash() != uint256S("25d25978d7f5a62441af14b76cf2a454c849f1d7f9c447f86cb29c40fe1f9ad9"))
+		{
+			if (block.vtx[0]->vout[0].scriptPubKey != block.vtx[1]->vout[1].scriptPubKey)
+				return state.DoS(100, false, REJECT_INVALID, "bad-cb-missing", false, "scriptPubKey of coinbase and scriptPubKey of coinstake is not same");
+		}
+	}
 			
     for (unsigned int i = 1; i < block.vtx.size(); i++)
         if (block.vtx[i]->IsCoinBase())
