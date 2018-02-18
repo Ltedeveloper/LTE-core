@@ -1484,7 +1484,8 @@ static DisconnectResult DisconnectBlock(const CBlock& block, const CBlockIndex* 
                 bool is_spent = view.SpendCoin(out, &coin);
 				if(is_coinstake && tx.vout[o].IsEmpty())
 					continue;
-                if (!is_spent || tx.vout[o] != coin.out || pindex->nHeight != coin.nHeight || is_coinbase != coin.fCoinBase) {
+                //if (!is_spent || tx.vout[o] != coin.out || pindex->nHeight != coin.nHeight || is_coinbase != coin.fCoinBase) {
+                if (!is_spent || tx.vout[o] != coin.out || pindex->nHeight != coin.nHeight) {
                     fClean = false; // transaction output mismatch
                 }
             }
