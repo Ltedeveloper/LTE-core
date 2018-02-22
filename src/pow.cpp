@@ -82,8 +82,15 @@ unsigned int PosGetNextTargetRequired(const CBlockIndex* pindexLast,  const CBlo
 {
 	bool fProofOfStake = pblock->IsProofOfStake();
 	assert(fProofOfStake == true);
-    unsigned int bnTargetLimitnBits = UintToArith256(uint256S("000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffff")).GetCompact() ;
-	
+    unsigned int bnTargetLimitnBits = UintToArith256(params.posLimit).GetCompact() ;
+
+	// for two mistake POS blocks 
+	// block height 1358191 (5ccd2a2789273b9334fffe6b8cadf5b858ce95fc598fcf31e7ee86e460b29e65)
+	// and block height 1358194 (25d25978d7f5a62441af14b76cf2a454c849f1d7f9c447f86cb29c40fe1f9ad9)
+	if (pblock->GetHash() == uint256S("5ccd2a2789273b9334fffe6b8cadf5b858ce95fc598fcf31e7ee86e460b29e65") ||
+		pblock->GetHash() == uint256S("25d25978d7f5a62441af14b76cf2a454c849f1d7f9c447f86cb29c40fe1f9ad9"))
+		return 0x1e0fffff;
+
 	
     if (pindexLast == NULL )
         //return bnTargetLimit.GetCompact(); // genesis block

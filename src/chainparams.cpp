@@ -107,6 +107,9 @@ public:
         consensus.powLimit = uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); 
         consensus.powLimitStart = uint256S("0007ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.powLimitLegacy = uint256S("0007ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+
+		//pos limit
+		consensus.posLimit = uint256S("00000000000000ffffffffffffffffffffffffffffffffffffffffffffffffff");
 		
         const size_t N = 200, K = 9;
         BOOST_STATIC_ASSERT(equihash_parameters_acceptable(N, K));
@@ -242,6 +245,9 @@ public:
         consensus.powLimitStart = uint256S("0000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.powLimitLegacy = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 
+		//pos limit
+		consensus.posLimit = uint256S("00000000000000ffffffffffffffffffffffffffffffffffffffffffffffffff");
+
         consensus.nPowAveragingWindow = 17;
         //assert(maxUint/UintToArith256(consensus.powLimit) >= consensus.nPowAveragingWindow);
         consensus.nPowMaxAdjustDown = 32; // 32% adjustment down
@@ -345,6 +351,9 @@ public:
         consensus.powLimit = uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); 
         consensus.powLimitStart = uint256S("0000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.powLimitLegacy = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+
+		//pos limit
+		consensus.posLimit = uint256S("00000000000000ffffffffffffffffffffffffffffffffffffffffffffffffff");
 
         consensus.nPowAveragingWindow = 17;
         //assert(maxUint/UintToArith256(consensus.powLimit) >= consensus.nPowAveragingWindow);

@@ -67,7 +67,10 @@ struct Params {
     uint256 powLimit;
     uint256 powLimitLegacy;
     uint256 powLimitStart;
-    
+
+	/** Proof of stake parameters */
+	uint256 posLimit;
+	
     const uint256& PowLimit(bool postfork) const { return postfork ? powLimitLegacy : powLimit; }
     bool fPowAllowMinDifficultyBlocks;
     bool fPowNoRetargeting;
