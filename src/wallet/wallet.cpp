@@ -642,6 +642,58 @@ void CWallet::AddToSpends(const uint256& wtxid)
         AddToSpends(txin.prevout, wtxid);
 }
 
+void CWallet::EraseFromSpends(const COutPoint& outpoint, const uint256& wtxid)
+{
+    LogPrintf("BlockDisconnected,EraseFromSpends2:%s\n",wtxid.ToString());
+    std::pair<TxSpends::iterator, TxSpends::iterator> range;
+    range = mapTxSpends.equal_range(outpoint);
+
+    int i=0;
+    auto it = range.first;
+    while (it != range.second)  
+    {  
+        if (it->second==wtxid)
+        {     
+            i +=1;
+        }  
+        ++it;   
+    } 
+    LogPrintf("EraseFromSpends:find num of keyvalues:%d\n",i);
+    if(i == 0)
+        LogPrintf("EraseFromSpends:have no value of this outpoint.\n");
+    else
+    {
+        LogPrintf("EraseFromSpends:delete the last value of this outpoint.\n");
+        int j=0;
+        while (range.first!=range.second)  
+        {  
+            if (range.first->second==wtxid)
+            {     
+                j +=1;
+                if(i == j)
+                {
+                    range.first = mapTxSpends.erase(range.first);
+                    break;
+                }
+            }  
+            ++range.first;   
+        }
+    }
+
+}
+
+
+void CWallet::EraseFromSpends(const uint256& wtxid)
+{
+    LogPrintf("BlockDisconnected,EraseFromSpends1:%s\n",wtxid.ToString());
+    assert(mapWallet.count(wtxid));
+    CWalletTx& thisTx = mapWallet[wtxid];
+    
+    for (const CTxIn& txin : thisTx.tx->vin)
+        EraseFromSpends(txin.prevout, wtxid);
+}
+
+
 bool CWallet::EncryptWallet(const SecureString& strWalletPassphrase)
 {
     if (IsCrypted())
@@ -936,7 +988,7 @@ bool CWallet::AddToWallet(const CWalletTx& wtxIn, bool fFlushOnClose)
 {
     LOCK(cs_wallet);
 
-    CWalletDB walletdb(*dbw, "r+", fFlushOnClose);
+    CWalletDB walletdb(*dbw, "cr+", fFlushOnClose);
 
     uint256 hash = wtxIn.GetHash();
 
@@ -984,6 +1036,17 @@ bool CWallet::AddToWallet(const CWalletTx& wtxIn, bool fFlushOnClose)
     //// debug print
     LogPrintf("AddToWallet %s  %s%s\n", wtxIn.GetHash().ToString(), (fInsertedNew ? "new" : ""), (fUpdated ? "update" : ""));
 
+    if(fDisconnt == true)
+    {
+        if(wtxIn.IsCoinStake())
+        {
+            EraseFromSpends(hash);
+            mapWallet.erase(hash);
+            if (!walletdb.EraseTx(hash))
+                return false;
+        }
+    }
+    
     // Write to disk
     if (fInsertedNew || fUpdated)
         if (!walletdb.WriteTx(wtx))
@@ -1225,7 +1288,6 @@ void CWallet::MarkConflicted(const uint256& hashBlock, const uint256& hashTx)
 
 void CWallet::SyncTransaction(const CTransactionRef& ptx, const CBlockIndex *pindex, int posInBlock) {
     const CTransaction& tx = *ptx;
-
     if (!AddToWalletIfInvolvingMe(ptx, pindex, posInBlock, true))
         return; // Not one of ours
 
@@ -1265,9 +1327,11 @@ void CWallet::BlockConnected(const std::shared_ptr<const CBlock>& pblock, const 
 void CWallet::BlockDisconnected(const std::shared_ptr<const CBlock>& pblock) {
     LOCK2(cs_main, cs_wallet);
 
+    fDisconnt = true;
     for (const CTransactionRef& ptx : pblock->vtx) {
         SyncTransaction(ptx);
     }
+    fDisconnt = false;
 }
 
 
