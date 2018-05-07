@@ -1041,7 +1041,11 @@ bool CWallet::AddToWallet(const CWalletTx& wtxIn, bool fFlushOnClose)
         if(wtxIn.IsCoinStake())
         {
             EraseFromSpends(hash);
-            mapWallet.erase(hash);
+            std::map<uint256, CWalletTx>::const_iterator mi = mapWallet.find(hash);
+            if (mi != mapWallet.end())
+            {
+                mapWallet.erase(hash);
+            }
             if (!walletdb.EraseTx(hash))
                 return false;
         }
@@ -3209,7 +3213,9 @@ CAmount CWallet::GetMinimumFee(unsigned int nTxBytes, const CCoinControl& coin_c
 DBErrors CWallet::LoadWallet(bool& fFirstRunRet)
 {
     fFirstRunRet = false;
-    DBErrors nLoadWalletRet = CWalletDB(*dbw,"cr+").LoadWallet(this);
+    
+    CWalletDB walletdb(*dbw, "cr+");
+    DBErrors nLoadWalletRet = walletdb.LoadWallet(this);
     if (nLoadWalletRet == DB_NEED_REWRITE)
     {
         if (dbw->Rewrite("\x04pool"))
@@ -3226,6 +3232,26 @@ DBErrors CWallet::LoadWallet(bool& fFirstRunRet)
 
     if (nLoadWalletRet != DB_LOAD_OK)
         return nLoadWalletRet;
+        
+    for(std::map<uint256, CWalletTx>::iterator item=mapWallet.begin();item!=mapWallet.end();)
+    {
+        if(item->second.IsCoinStake())
+        {
+            COutPoint out(item->first, 1);
+            if(!pcoinsTip->HaveCoin(out)&&(item->second.GetDepthInMainChain()==0)&&(item->second.InMempool()==false))
+            {
+                EraseFromSpends(item->first);
+                if (!walletdb.EraseTx(item->first))
+                    return DB_LOAD_FAIL;
+                mapWallet.erase(item++);
+            }
+            else
+               item++;
+        }
+        else
+           item++;
+    }
+        
     fFirstRunRet = !vchDefaultKey.IsValid();
 
     uiInterface.LoadWallet(this);
