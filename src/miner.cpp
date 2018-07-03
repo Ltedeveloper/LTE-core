@@ -251,6 +251,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlockPos(CWalletRef& pw
     pblock->vtx.emplace_back();
     pblocktemplate->vTxFees.push_back(-1); // updated at end
     pblocktemplate->vTxSigOpsCost.push_back(-1); // updated at end
+    pblocktemplate->vTxSigOpsCost.push_back(-1);
 
     if (!EnsureWalletIsAvailable(pwallet, true))
         return nullptr;
