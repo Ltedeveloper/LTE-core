@@ -253,6 +253,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlockPos(CWalletRef& pw
     pblocktemplate->vTxSigOpsCost.push_back(-1); // updated at end
     pblocktemplate->vTxSigOpsCost.push_back(-1);
 
+    LOCK2(cs_main, mempool.cs);
+
     if (!EnsureWalletIsAvailable(pwallet, true))
         return nullptr;
 
@@ -266,7 +268,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlockPos(CWalletRef& pw
     //if (!coinbase_script)
     //    return nullptr;	
 
-    LOCK2(cs_main, mempool.cs);
     CBlockIndex* pindexPrev = chainActive.Tip();
     nHeight = pindexPrev->nHeight + 1;
 
@@ -869,8 +870,11 @@ bool CheckStake(CBlock* pblock)
         return error("CheckStake() : called on non-coinstake %s", pblock->vtx[1]->GetHash().ToString());
 
 	Coin coinStake;
-	if (!pcoinsTip->GetCoin(pblock->vtx[1]->vin[0].prevout, coinStake))
-		return error("CheckStake() : can not get coinstake coin");
+	{
+	    LOCK2(cs_main,mempool.cs);
+	    if (!pcoinsTip->GetCoin(pblock->vtx[1]->vin[0].prevout, coinStake))
+		    return error("CheckStake() : can not get coinstake coin");
+    }
 
 	// Check stake min confirmations
 	if (coinStake.nHeight > pblock->nHeight - nStakeMinConfirmations)

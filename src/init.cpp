@@ -1744,6 +1744,7 @@ static void ThreadStakeMiner(CWallet *pwallet)
     // Make this thread recognisable as the mining thread
     RenameThread("lte-pos-miner");
     bool fTryToSync = true;
+    int nHeight = 0;
 
     while (ThreadPOSstate)
     {
@@ -1751,7 +1752,11 @@ static void ThreadStakeMiner(CWallet *pwallet)
 			MilliSleep(1000);
 		else
 		{
-    		while (pindexBestHeader->nHeight < Params().GetConsensus().LTEHeight + Params().GetConsensus().LTEPremineWindow) {
+		    {
+		        LOCK(cs_main);
+		        nHeight = pindexBestHeader->nHeight;
+		    }
+    		while (nHeight < Params().GetConsensus().LTEHeight + Params().GetConsensus().LTEPremineWindow) {
     		    if(!ThreadPOSstate)
     		        break;
                 MilliSleep(1000);
