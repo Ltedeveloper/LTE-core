@@ -1756,10 +1756,11 @@ static void ThreadStakeMiner(CWallet *pwallet)
 		        LOCK(cs_main);
 		        nHeight = pindexBestHeader->nHeight;
 		    }
-    		while (nHeight < Params().GetConsensus().LTEHeight + Params().GetConsensus().LTEPremineWindow) {
+    		if (nHeight < Params().GetConsensus().LTEHeight + Params().GetConsensus().LTEPremineWindow) {
     		    if(!ThreadPOSstate)
     		        break;
                 MilliSleep(1000);
+                continue;
             }	
     
     		while (pwallet->IsLocked()) {
