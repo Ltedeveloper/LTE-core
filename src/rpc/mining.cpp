@@ -2,6 +2,7 @@
 // Copyright (c) 2009-2016 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
+#include <utilmoneystr.h>
 
 #include "base58.h"
 #include "amount.h"
@@ -31,6 +32,8 @@
 
 #include <univalue.h>
 #include "crypto/equihash.h"
+
+extern posState posstate;
 
 unsigned int ParseConfirmTarget(const UniValue& value)
 {
@@ -315,6 +318,35 @@ UniValue getmininginfo(const JSONRPCRequest& request)
     obj.push_back(Pair("chain",            Params().NetworkIDString()));
     return obj;
 }
+
+UniValue getposstate(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() !=0)
+            throw std::runtime_error(
+                "getposstate\n"
+                "\nReturns current state of pos."
+                "\nResult:\n"
+                "{\n"
+                "  ifpos:(numeric) whether doing pos mining(0:pos disable;1:pos thread started,but not pos mining;2:pos thread started and doing mining)\n"
+                "   numofutxo: nnn, (numeric) The number of utxo to do pos mining\n"
+                "   weight: nnn,  (string) The sum of all the utxo that to do pos mining\n"
+                "}\n"
+                "\nExamples:\n"
+                + HelpExampleCli("getposstate", "")
+                + HelpExampleRpc("getposstate", "")
+            );
+
+    LOCK(cs_main);
+
+    UniValue currentposstate(UniValue::VOBJ);
+
+    currentposstate.push_back(Pair("ifpos", (uint64_t)posstate.ifPos));
+    currentposstate.push_back(Pair("numofutxo", (uint64_t)posstate.numOfUtxo));
+    currentposstate.push_back(Pair("weight", FormatMoney(posstate.sumOfutxo)));
+
+    return currentposstate;
+}
+
 
 
 // NOTE: Unlike wallet RPC (which use BTC values), mining RPCs follow GBT (BIP 22) in using satoshi amounts
@@ -1073,6 +1105,7 @@ static const CRPCCommand commands[] =
     { "mining",             "getnetworkhashps",       &getnetworkhashps,       true,  {"nblocks","height"} },
     { "mining",             "getnetworksolps",       &getnetworksolps,       true,  {"nblocks","height"} },
     { "mining",             "getmininginfo",          &getmininginfo,          true,  {} },
+    { "mining",             "getposstate",       &getposstate,                 true,     {} },
     { "mining",             "prioritisetransaction",  &prioritisetransaction,  true,  {"txid","dummy","fee_delta"} },
     { "mining",             "getblocktemplate",       &getblocktemplate,       true,  {"template_request"} },
     { "mining",             "submitblock",            &submitblock,            true,  {"hexdata","dummy"} },

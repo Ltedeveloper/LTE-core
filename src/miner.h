@@ -23,6 +23,13 @@ namespace Consensus { struct Params; };
 
 static const bool DEFAULT_PRINTPRIORITY = false;
 
+struct posState
+{
+    uint64_t ifPos;
+    uint64_t numOfUtxo;
+    uint64_t sumOfutxo;
+};
+
 struct CBlockTemplate
 {
     CBlock block;
@@ -184,7 +191,7 @@ private:
     /** Add transactions based on feerate including unconfirmed ancestors
       * Increments nPackagesSelected / nDescendantsUpdated with corresponding
       * statistics from the package selection (for logging statistics). */
-    void addPackageTxs(int &nPackagesSelected, int &nDescendantsUpdated);
+    void addPackageTxs(int &nPackagesSelected, int &nDescendantsUpdated, const COutPoint& outpointPos=COutPoint());
 
     // helper functions for addPackageTxs()
     /** Remove confirmed (inBlock) entries from given set */

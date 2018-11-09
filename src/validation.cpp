@@ -48,6 +48,7 @@
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/join.hpp>
 #include <boost/thread.hpp>
+#include <miner.h>
 
 #if defined(NDEBUG)
 # error "Litecoin cannot be compiled without assertions."
@@ -2897,6 +2898,16 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
 		{
 			if (block.vtx[0]->vout[0].scriptPubKey != block.vtx[1]->vout[1].scriptPubKey)
 				return state.DoS(100, false, REJECT_INVALID, "bad-cb-missing", false, "scriptPubKey of coinbase and scriptPubKey of coinstake is not same");
+		}
+
+		if(block.nHeight >= Params().GetConsensus().LTEFork1Height)
+		{
+		    Coin coinStake;
+    		if (!pcoinsTip->GetCoin(block.vtx[1]->vin[0].prevout, coinStake))
+    			return error("checkblock() CheckProofOfStake");
+    			
+		    if (!CheckProofOfStake((CBlock *)&block, block.vtx[1]->vin[0].prevout, block.vtx[1]->vout[1].nValue, block.nHeight - coinStake.nHeight))
+      		    return error("checkblock() CheckProofOfStake");
 		}
 	}
 			

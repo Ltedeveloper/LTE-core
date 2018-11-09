@@ -53,6 +53,9 @@ extern CAmount nMinimumInputValue;
 extern CAmount nReserveBalance;
 extern int nStakeMinConfirmations;
 
+posState posstate;
+
+
 static bool CheckKernel(CBlock* pblock, const COutPoint& prevout, CAmount amount);
 //static bool CheckKernel(CBlock* pblock, const COutPoint& prevout, CAmount amount, int32_t utxoDepth);
 
@@ -292,10 +295,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlockPos(CWalletRef& pw
     // transaction (which in most cases can be a no-op).
     fIncludeWitness = IsWitnessEnabled(pindexPrev, chainparams.GetConsensus()) && fMineWitnessTx;
 
-    int nPackagesSelected = 0;
-    int nDescendantsUpdated = 0;
-    addPackageTxs(nPackagesSelected, nDescendantsUpdated);
-
     //int64_t nTime1 = GetTimeMicros();
 
     nLastBlockTx = nBlockTx;
@@ -356,6 +355,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlockPos(CWalletRef& pw
     CScript scriptEmpty;
     scriptEmpty.clear();
     //txCoinStake.vout.push_back(CTxOut(0, scriptEmpty));
+    posstate.numOfUtxo = 0;
+    posstate.sumOfutxo = 0;
 
 	// Choose coins to use
     CAmount nBalance = pwallet->GetBalance();
@@ -370,6 +371,9 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlockPos(CWalletRef& pw
     // Select coins with suitable depth
     if (!pwallet->SelectCoinsForStaking(nBalance - nReserveBalance, setCoins, nValueIn))
         return nullptr;
+        
+    posstate.numOfUtxo = setCoins.size();
+    posstate.sumOfutxo = nValueIn;
 
     if (setCoins.empty())
         return nullptr;
@@ -377,6 +381,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlockPos(CWalletRef& pw
 	int64_t nCredit = 0;
 	bool fKernelFound = false;
 	CScript scriptPubKeyKernel;
+	COutPoint prevoutFound;
 
 	for (const auto& pcoin: setCoins) {
 		COutPoint prevoutStake = COutPoint(pcoin.first->GetHash(), pcoin.second);
@@ -394,6 +399,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlockPos(CWalletRef& pw
 		if (CheckKernel(pblock, prevoutStake, coinStake.out.nValue)) {
             // Found a kernel
             LogPrintf("CreateCoinStake : kernel found\n");
+            // Set prevoutFound
+			prevoutFound = prevoutStake;
             std::vector<std::vector<unsigned char> > vSolutions;
             txnouttype whichType;
             CScript scriptPubKeyOut;
@@ -454,6 +461,10 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlockPos(CWalletRef& pw
     txCoinbase.vin[0].scriptSig = (CScript() << pblock->nHeight  << CScriptNum(nExtraNonce)) + COINBASE_FLAGS;
     assert(txCoinbase.vin[0].scriptSig.size() <= 100);
     pblock->vtx[0] = MakeTransactionRef(std::move(txCoinbase));
+
+    int nPackagesSelected = 0;
+    int nDescendantsUpdated = 0;
+    addPackageTxs(nPackagesSelected, nDescendantsUpdated, prevoutFound);
 
 	// insert CoinStake
 	pblock->vtx.insert(pblock->vtx.begin() + 1, MakeTransactionRef(std::move(txCoinStake)));
@@ -608,7 +619,7 @@ void BlockAssembler::SortForBlock(const CTxMemPool::setEntries& package, CTxMemP
 // Each time through the loop, we compare the best transaction in
 // mapModifiedTxs with the next transaction in the mempool to decide what
 // transaction package to work on next.
-void BlockAssembler::addPackageTxs(int &nPackagesSelected, int &nDescendantsUpdated)
+void BlockAssembler::addPackageTxs(int &nPackagesSelected, int &nDescendantsUpdated, const COutPoint& outpointPos)
 {
     // mapModifiedTx will store sorted packages after they are modified
     // because some of their txs are already in the block
@@ -726,6 +737,24 @@ void BlockAssembler::addPackageTxs(int &nPackagesSelected, int &nDescendantsUpda
         SortForBlock(ancestors, iter, sortedEntries);
 
         for (size_t i=0; i<sortedEntries.size(); ++i) {
+            const CTransaction& tx = sortedEntries[i]->GetTx();
+
+			// check UTXO spent by pos mining
+			bool spentByPos = false;
+			if (outpointPos.n != uint32_t(-1)) 
+			{
+				for (const auto& vin : tx.vin) 
+				{
+					if (vin.prevout == outpointPos) 
+					{
+						spentByPos = true;
+						break;
+					}
+				}
+				
+				if (spentByPos)
+					continue;
+			}
             AddToBlock(sortedEntries[i]);
             // Erase from the modified set, if present
             mapModifiedTx.erase(sortedEntries[i]);
@@ -768,6 +797,8 @@ bool CheckKernel(CBlock* pblock, const COutPoint& prevout, CAmount amount)
 	
 	if (utxoHeight > pblock->nHeight - nStakeMinConfirmations)
 		return false;
+		
+    posstate.ifPos = 2;
 
     return CheckProofOfStake(pblock, prevout, amount, pblock->nHeight-utxoHeight);
 }

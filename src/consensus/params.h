@@ -50,6 +50,8 @@ struct Params {
     int LTEHeight;
     int LTEPremineWindow;
 
+    int LTEFork1Height;
+    
     bool LTEPremineEnforceWhitelist;
     /** Block height at which OP_RETURN replay protection stops */
     int antiReplayOpReturnSunsetHeight;

@@ -99,6 +99,15 @@ unsigned int PosGetNextTargetRequired(const CBlockIndex* pindexLast,  const CBlo
     const CBlockIndex* pindexPrev = GetLastBlockIndex(pindexLast, fProofOfStake,params);
 	if(pindexPrev == NULL)
 		return bnTargetLimitnBits;
+    else
+    {
+        if(pindexPrev->nHeight >= params.LTEHeight && pindexPrev->nHeight < params.LTEFork1Height)
+	    {
+    	    if(pblock->nHeight >= params.LTEFork1Height)
+        	    return bnTargetLimitnBits;
+        }
+    }
+    
     if (pindexPrev->pprev == NULL)
         //return bnTargetLimit.GetCompact(); // first block
         return bnTargetLimitnBits;

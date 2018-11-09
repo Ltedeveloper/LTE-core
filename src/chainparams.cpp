@@ -103,6 +103,8 @@ public:
         consensus.LTEHeight=1345678;
         consensus.LTEPremineWindow=12000;
 
+        consensus.LTEFork1Height= 1610120;
+
         consensus.LTEPremineEnforceWhitelist = true;
         consensus.powLimit = uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); 
         consensus.powLimitStart = uint256S("0007ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
